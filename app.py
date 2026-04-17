@@ -6,6 +6,28 @@ import mediapipe as mp #ferramentas de reconhecimento de imagens
 
 #utilize pip install mediapipe para rodar o código
 
+class DetectorRosto():
+    #classe responsavel por reconhecer rostos
+    def __init__(self):
+        self.mp_face = mp.solutions.face_detection
+        self.face = self.mp_face.FaceDetection()
+        self.desenho = mp.solutions.drawing_utils
+
+    def encontrar_rosto(self, img):
+        #converter para RGB
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        #processamento
+        resultado = self.face.process(img_rgb)
+
+        #desenho
+        if resultado.detections:
+            for rosto in resultado.detections:
+                self.desenho.draw_detection(img, rosto)
+
+        return img        
+
+
 class DetectorMaos():
     #classe responsavel pela detecçao de maos
     def __init__(self, modo=False, max_maos=2, deteccao_confianca=0.5,
@@ -80,8 +102,8 @@ def main():
     cap = cv2.VideoCapture(0) #identificar a webcam
 
     #instanciar a classe do detector
-    detector = DetectorMaos(cor_pontos=(255, 0, 0), cor_conexoes=(255, 0, 0)) #definir a cor de pontos e conexoes
-
+    detectorMaos = DetectorMaos(cor_pontos=(255, 0, 0), cor_conexoes=(255, 0, 0)) #definir a cor de pontos e conexoes
+    detectorRosto = DetectorRosto()
     #realizar captura
     while True:
 
@@ -96,7 +118,10 @@ def main():
         img = cv2.flip(img, 1)
 
         #detectar mãos
-        img = detector.encontrar_maos(img)
+        img = detectorMaos.encontrar_maos(img)
+        #detectar rosto
+        img = detectorRosto.encontrar_rosto(img)
+        
 
         #mostrar captura 
         cv2.imshow('Captura de imagem', img)
@@ -105,6 +130,8 @@ def main():
         if cv2.waitKey(1) & 0xFF == 27: #tecla ESC para sair
             break
 
+    cap.release()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
