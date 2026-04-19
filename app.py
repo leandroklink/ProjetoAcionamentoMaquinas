@@ -4,162 +4,44 @@ import mediapipe as mp #ferramentas de reconhecimento de imagens
 
 #É NECESSÁRIO UTILIZAR O PYTHON COM A VERSAO NO MÁXIMO 3.10.    
 
-#utilize pip install mediapipe cv2 para rodar o código
+#utilize pip install mediapipe para rodar o código
 
 class DetectorRosto():
     #classe responsavel por reconhecer rostos
-    def __init__(self, deteccao_confianca=0.5):
-        
-        self.deteccao_confianca = deteccao_confianca
-
+    def __init__(self):
         self.mp_face = mp.solutions.face_detection
         self.face = self.mp_face.FaceDetection()
         self.desenho = mp.solutions.drawing_utils
 
-    def encontrar_rosto(
-            self,
-            img, # Imagem capturada.
-            desenho=True, # Desenhar a(s) caixa(s) de detecção do(s) rosto(s).
-            cor_caixa=(255, 0, 255), # Cor da caixa.
-            cor_moldura=(255, 0, 255), #Cor da moldura.
-            comprimento=30, #Comprimento da linha da moldura.
-            espessura_moldura=5, # Espessura da linha da moldura.
-            espessura_retangulo=1, #Espessura do retângulo da(s) caixa(s).
-            desenho_caixa=True, # Desenhar a caixa de detecção.
-            desenho_moldura=True # Desenhar a moldura na caixa de detecção.
-        ):
+    def encontrar_rosto(self, img):
+
+        h, w, _ = img.shape
 
         #converter para RGB
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         #processamento
         resultado = self.face.process(img_rgb)
-        
-
-        #lista com caixas de deteccao de rostos
-        caixas = []
-
 
         #desenho
         if resultado.detections:
-            for id, rosto in enumerate(resultado.detections):
+            for rosto in resultado.detections:
+                bbox = rosto.location_data.relative_bounding_box
 
-                #informacoes da caixa de reconhecimento
+                x = int(bbox.xmin * w)
+                y = int(bbox.ymin * h)
+                largura = int(bbox.width * w)
+                altura = int(bbox.height * h)
 
-                info_caixa = rosto.location_data.relative_bounding_box
-                self.desenho.draw_detection(img, rosto)
+                confianca = int(rosto.score[0] * 100)
 
-                altura, largura, _ = img.shape
+                # caixa do rosto
+                cv2.rectangle(img, (x, y), (x+largura, y+altura), (0, 255, 0), 2)
 
-                #caixas de deteccao
-                caixa = (int(info_caixa.xmin * largura), int(info_caixa.ymin * altura),
-                         int(info_caixa.width * largura), int(info_caixa.height * largura))
-                
-                caixas.append([id, caixa, rosto .score])
-
-                #desenhar caixa em volta do rosto
-                if rosto:
-                    img = self.desenho_moldura(
-                        img, caixa, cor_caixa, cor_moldura, comprimento,
-                        espessura_moldura, espessura_retangulo, desenho_caixa, desenho_moldura)
-                                        # --- Colocar na caixa de detecção a porcentagem de certeza da detecção --- #
-                    
-                    cv2.putText(
-                        img,  # imagem capturada
-                        f'{int(rosto.score[0] * 100)}%',  # texto
-                        (caixa[0], caixa[1] - 20),  # posição do texto
-                        cv2.FONT_HERSHEY_PLAIN,  # fonte
-                        2,  # tamanho da fonte
-                        (255, 0, 255),  # cor da fonte
-                        2  # espessura
-                    )
-        return img,caixas       
-    
-
-    def desenho_moldura(
-            self, img, caixa, cor_caixa, cor_moldura, comprimento, espessura_moldura, 
-            espessura_retangulo, desenho_caixa, desenho_moldura):
-        # --- Dimensões da caixa --- #
-        x, y, largura, altura = caixa
-
-        # --- Pontos iniciais da moldura --- #
-        x_1, y_1 = x + largura, y + largura
-
-        if desenho_caixa:
-            # --- Desenhar a caixa em volta do rosto detectado --- #
-            cv2.rectangle(
-                img,  # imagem capturada
-                caixa,  # pontos da caixa
-                cor_caixa,  # cor do retângulo
-                espessura_retangulo  # espessura da linha do retângulo
-            )
-
-        if desenho_moldura:
-            # --- Canto superior esquerdo --- #
-            cv2.line(
-                img,   # imagem capturada
-                (x, y),  # ponto inicial
-                (x + comprimento, y),  # ponto final
-                cor_moldura,  # cor da moldura
-                espessura_moldura  # espessura da moldura
-            )
-            cv2.line(
-                img, 
-                (x, y),
-                (x, y + comprimento),
-                cor_moldura,
-                espessura_moldura
-            )
-
-            # --- Canto superior direito --- #
-            cv2.line(
-                img,
-                (x_1, y),
-                (x_1 - comprimento, y),
-                cor_moldura,
-                espessura_moldura
-            )
-            cv2.line(
-                img,
-                (x_1, y),
-                (x_1, y + comprimento),
-                cor_moldura,
-                espessura_moldura
-            )
-
-            # --- Canto inferior esquerdo --- #
-            cv2.line(
-                img, 
-                (x, y_1),
-                (x + comprimento, y_1),
-                cor_moldura,
-                espessura_moldura
-            )
-            cv2.line(
-                img,
-                (x, y_1),
-                (x, y_1 - comprimento),
-                cor_moldura,
-                espessura_moldura
-            )
-
-            # --- Canto inferior direito --- #
-            cv2.line(
-                img,
-                (x_1, y_1),
-                (x_1 - comprimento, y_1),
-                cor_moldura,
-                espessura_moldura
-            )
-            cv2.line(
-                img,
-                (x_1, y_1),
-                (x_1, y_1 - comprimento),
-                cor_moldura,
-                espessura_moldura
-            )
-
-        return img
+                # texto
+                cv2.putText(img, f'Rosto {confianca}%', (x, y-10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+        return img        
 
 
 class DetectorMaos():
@@ -254,7 +136,7 @@ def main():
         #detectar mãos
         img = detectorMaos.encontrar_maos(img)
         #detectar rosto
-        img, caixas = detectorRosto.encontrar_rosto(img)
+        img = detectorRosto.encontrar_rosto(img)
         
 
         #mostrar captura 
