@@ -1,6 +1,9 @@
 import cv2 #open CV - pacote de codigos 
 import mediapipe as mp #ferramentas de reconhecimento de imagens
-
+import os
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
 
 #É NECESSÁRIO UTILIZAR O PYTHON COM A VERSAO NO MÁXIMO 3.10.    
 
@@ -33,6 +36,12 @@ class DetectorRosto():
                 largura = int(bbox.width * w)
                 altura = int(bbox.height * h)
 
+                #evitar o erro de corte fora da imagem
+                x = max(0, x)
+                y = max(0, y)
+                largura = max(0, largura)
+                altura = max(0, altura)    
+
                 confianca = int(rosto.score[0] * 100)
 
                 # caixa do rosto
@@ -41,7 +50,10 @@ class DetectorRosto():
                 # texto
                 cv2.putText(img, f'Rosto {confianca}%', (x, y-10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-        return img        
+                
+                rosto_img = img[y:y+altura, x:x+largura]
+                break
+        return img, rosto_img       
 
 
 class DetectorMaos():
@@ -108,8 +120,40 @@ class DetectorMaos():
         #retornar imagem (mesmo se nao detectar nada)
         return img
 
-    def encontrar_pontos(self): #funcao futura
-        return
+    #contar maos
+    def contar_maos(self):
+        if self.resultado.multi_hand_landmarks:
+            return len(self.resultado.multi_hand_landmarks)
+        return 0
+
+#carregar DataSet + PCA
+def carregar_dataset():
+    dados = []
+    labels = []
+    path = "dataset"
+
+    for pessoa in os.listdir(path):
+        for img_name in os.listdir(os.path.join(path, pessoa)):
+            img_path = os.path.join(path, pessoa, img_name)
+
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            img = cv2.resize(img, (100, 100))
+
+            vetor = img.flatten()
+
+            dados.append(vetor)
+            labels.append(pessoa)
+
+    return np.array(dados), labels
+
+
+dados, labels = carregar_dataset()
+
+pca = PCA(n_components=50)
+dados_pca = pca.fit_transform(dados)
+
+modelo = KNeighborsClassifier(n_neighbors=3)
+modelo.fit(dados_pca, labels)
 
 
 def main():
@@ -136,7 +180,7 @@ def main():
         #detectar mãos
         img = detectorMaos.encontrar_maos(img)
         #detectar rosto
-        img = detectorRosto.encontrar_rosto(img)
+        img, rosto = detectorRosto.encontrar_rosto(img)
         
 
         #mostrar captura 
