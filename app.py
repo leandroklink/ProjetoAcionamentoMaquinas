@@ -159,6 +159,13 @@ modelo.fit(dados_pca, labels)
 def main():
     #capturar o video pela webcam
 
+
+    # carregar lista de autorizados
+    with open("autorizados.txt") as f:
+        autorizados = [linha.strip() for linha in f]
+
+
+
     cap = cv2.VideoCapture(0) #identificar a webcam
 
     #instanciar a classe do detector
@@ -182,6 +189,55 @@ def main():
         #detectar rosto
         img, rosto = detectorRosto.encontrar_rosto(img)
         
+
+
+        nome = "Desconhecido"
+
+        if rosto is not None:
+            try:
+                rosto_gray = cv2.cvtColor(rosto, cv2.COLOR_BGR2GRAY)
+                rosto_gray = cv2.resize(rosto_gray, (100, 100))
+
+                vetor = rosto_gray.flatten().reshape(1, -1)
+                vetor_pca = pca.transform(vetor)
+
+                pred = modelo.predict(vetor_pca)
+                nome = pred[0]
+            except:
+                nome = "Erro"
+
+        num_maos = detectorMaos.contar_maos()
+
+
+        #REGRA DOS 3 Segundos
+        if nome == "Desconhecido":
+            status = "Nao reconhecido"
+            tempo_inicio = None
+
+        elif nome not in autorizados:
+            status = "Nao autorizado"
+            tempo_inicio = None
+
+        elif num_maos < 2:
+            status = "Mostre as duas maos"
+            tempo_inicio = None
+
+        else:
+            if tempo_inicio is None:
+                tempo_inicio = time.time()
+
+            if time.time() - tempo_inicio >= 3:
+                status = "Equipamento liberado"
+            else:
+                status = "Validando..."
+
+
+        cv2.putText(img, f'Usuario: {nome}', (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+
+        cv2.putText(img, f'Status: {status}', (10, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
+
 
         #mostrar captura 
         cv2.imshow('Captura de imagem', img)
