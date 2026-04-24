@@ -2,6 +2,7 @@ import cv2 #open CV - pacote de codigos
 import mediapipe as mp #ferramentas de reconhecimento de imagens
 import os
 import numpy as np
+import time
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -19,6 +20,7 @@ class DetectorRosto():
     def encontrar_rosto(self, img):
 
         h, w, _ = img.shape
+        rosto_img = None
 
         #converter para RGB
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -42,15 +44,12 @@ class DetectorRosto():
                 largura = max(0, largura)
                 altura = max(0, altura)    
 
-                confianca = int(rosto.score[0] * 100)
+                x = max(0, x)
+                y = max(0, y)
 
                 # caixa do rosto
                 cv2.rectangle(img, (x, y), (x+largura, y+altura), (0, 255, 0), 2)
 
-                # texto
-                cv2.putText(img, f'Rosto {confianca}%', (x, y-10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-                
                 rosto_img = img[y:y+altura, x:x+largura]
                 break
         return img, rosto_img       
@@ -149,7 +148,7 @@ def carregar_dataset():
 
 dados, labels = carregar_dataset()
 
-pca = PCA(n_components=50)
+pca = PCA(n_components=5)
 dados_pca = pca.fit_transform(dados)
 
 modelo = KNeighborsClassifier(n_neighbors=3)
