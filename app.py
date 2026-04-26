@@ -200,8 +200,19 @@ def main():
                 vetor = rosto_gray.flatten().reshape(1, -1)
                 vetor_pca = pca.transform(vetor)
 
-                pred = modelo.predict(vetor_pca)
-                nome = pred[0]
+                distancias, indices = modelo.kneighbors(vetor_pca)
+
+                distancia = distancias[0][0]
+                indice = indices[0][0]
+
+                nome = labels[indice]
+
+                # Limite = mais para aceitar melhor, menos para aceitar menos
+                LIMIAR = 2680
+                print("Distancia:", distancia)
+                
+                if distancia > LIMIAR:
+                    nome = "Desconhecido"
             except:
                 nome = "Erro"
 
